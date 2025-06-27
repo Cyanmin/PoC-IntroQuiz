@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { connectRoom } from '../../lib/ws-client';
+import { connectRoom } from '../../../lib/ws-client';
 
 export default function RoomPage({ params }: { params: { id: string } }) {
   const [players, setPlayers] = useState<string[]>([]);
