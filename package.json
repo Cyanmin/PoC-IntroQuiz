@@ -1,20 +1,19 @@
 {
   "name": "poc-introquiz",
   "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "start": "node server/index.js",
-    "client": "vite",
     "server": "node server/index.js",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "test": "echo \"No tests yet\""
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.5"
+    "client": "vite --config vite.config.ts",
+    "dev": "concurrently \"npm run server\" \"npm --workspace=client run dev\"",
+    "test": "vitest"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "vite": "^5.2.0",
-    "concurrently": "^8.2.2"
-  }
+    "concurrently": "^8.2.2",
+    "vitest": "^1.5.2"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ]
 }

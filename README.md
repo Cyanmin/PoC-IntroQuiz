@@ -2,11 +2,36 @@
 
 This project is a proof of concept for a YouTube intro quiz application.
 
-## Usage
+## Getting Started
 
-```
-npm install
-npm run dev
+Use the provided setup script to install dependencies for both client and server:
+
+```bash
+./scripts/setup.sh
 ```
 
-The server is served from `server/index.js` and the client from `client/` using Vite.
+### Development
+
+In one terminal run the server:
+
+```bash
+npm run server
+```
+
+In another terminal run the client:
+
+```bash
+npm --workspace=client run dev
+```
+
+### Testing
+
+Run unit tests with:
+
+```bash
+npm test
+```
+
+### Notes
+
+Dependency installation may fail in environments without internet access. Configure a registry mirror or pre-install packages if required.
