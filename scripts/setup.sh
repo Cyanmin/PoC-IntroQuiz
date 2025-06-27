@@ -1,14 +1,20 @@
 #!/bin/bash
-set -e
+set +e
 
 if [ -f server/package.json ]; then
   echo "Installing server dependencies..."
-  (cd server && npm install || true)
+  (cd server && npm install)
+  if [ $? -ne 0 ]; then
+    echo "⚠️ npm install failed for server. Check your network or use local packages."
+  fi
 fi
 
 if [ -f client/package.json ]; then
   echo "Installing client dependencies..."
-  (cd client && npm install || true)
+  (cd client && npm install)
+  if [ $? -ne 0 ]; then
+    echo "⚠️ npm install failed for client. Check your network or use local packages."
+  fi
 fi
 
 if [ ! -f .env.example ]; then

@@ -13,9 +13,22 @@ io.on('connection', socket => {
 
   socket.on('createRoom', (cb) => {
     const roomId = Math.random().toString(36).slice(2, 8);
-    rooms.set(roomId, { host: socket.id, members: [socket.id] });
+    rooms.set(roomId, { host: socket.id, members: [socket.id], players: [] });
     socket.join(roomId);
     cb({ roomId });
+  });
+
+  socket.on('joinRoom', ({ roomId, name }, cb) => {
+    const room = rooms.get(roomId);
+    if (!room) {
+      cb && cb({ error: 'room not found' });
+      return;
+    }
+    room.members.push(socket.id);
+    room.players.push({ id: socket.id, name });
+    socket.join(roomId);
+    io.to(roomId).emit('playerJoined', { id: socket.id, name });
+    cb && cb({ ok: true });
   });
 
   socket.on('disconnect', () => {
