@@ -73,3 +73,8 @@ export interface ScoreUpdatePayload {
 export interface QuizEndPayload {
   finalScores: Player[];
 }
+// クライアント → サーバー：reconnect
+export interface ReconnectPayload {
+  roomId: string;
+  clientId: string;
+}
