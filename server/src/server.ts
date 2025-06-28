@@ -2,7 +2,7 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
-import { registerSocketHandlers } from "./socket/handler";
+import { registerSocketHandlers } from "./socket/handlers";
 
 dotenv.config();
 
