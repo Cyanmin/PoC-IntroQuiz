@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { Room, StartQuizPayload } from "../types";
 import { roomStore } from "../stores/roomStore";
+import { HandleStartQuestion } from "./handleStartQuestion";
 
 export const HandleStartQuiz = (io: Server, socket: Socket) => {
 	socket.on("startQuiz", (payload: StartQuizPayload) => {
@@ -29,6 +30,6 @@ export const HandleStartQuiz = (io: Server, socket: Socket) => {
 		roomStore.set(roomId, room);
 
 		// HandleStartQuestion() を呼び出して問題を開始
-		// HandleStartQuestion(io, socket, room);
+		HandleStartQuestion(io, socket);
 	});
 }

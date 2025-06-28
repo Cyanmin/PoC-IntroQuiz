@@ -12,8 +12,8 @@ export const registerSocketHandlers = (io: Server) => {
 
     // TODO: クイズ開始処理（全クライアントに startQuestion を送信）
     HandleStartQuiz(io, socket);
-	
-	// TODO: 問題開始処理（全クライアントに startQuestion を送信）
+
+    // TODO: 問題開始処理（全クライアントに startQuestion を送信）
     HandleStartQuestion(io, socket);
 
     socket.on("buzz", () => {
