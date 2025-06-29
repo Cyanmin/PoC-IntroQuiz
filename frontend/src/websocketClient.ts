@@ -1,9 +1,8 @@
 // WebSocket test client for IntroQuiz
 // Start Vite with '--host' for LAN debugging
 
-const API_ID = '<API-ID>'
-const REGION = '<region>'
-
+const API_ID = 'uwzlrtt6r9'
+const REGION = 'ap-northeast-1'
 // Construct the WebSocket URL
 const wsUrl = `wss://${API_ID}.execute-api.${REGION}.amazonaws.com/dev`
 
