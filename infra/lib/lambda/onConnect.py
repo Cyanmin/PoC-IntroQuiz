@@ -1,13 +1,25 @@
+import boto3
+import os
+
+dynamodb = boto3.resource('dynamodb')
+player_table = dynamodb.Table(os.environ['PLAYER_TABLE'])
+
 def handler(event, context):
-    print("Received event:", event)
-    
     # 必要であれば、接続 ID をログ出力
-    connection_id = event.get('requestContext', {}).get('connectionId')
-    route_key = event.get('requestContext', {}).get('routeKey')
-    
-    print(f"Connection ID: {connection_id}, Route: {route_key}")
-    
+    connection_id = event['requestContext']['connectionId']
+
+    # DynamoDB にプレイヤー仮登録
+    player_table.put_item(
+        Item={
+            'connectionId': connection_id,
+            'roomId' : '', # 未設定状態で仮登録
+            'playerId': '',
+            'elapsed': None,
+            'score': 0,
+        }
+    )
+
     return {
         "statusCode": 200,
-        "body": "OK"
+        "body": "Connected"
     }

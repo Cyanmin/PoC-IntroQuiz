@@ -1,9 +1,5 @@
-// WebSocket test client for IntroQuiz
-// Start Vite with '--host' for LAN debugging
-
 const API_ID = 'uwzlrtt6r9'
 const REGION = 'ap-northeast-1'
-// Construct the WebSocket URL
 const wsUrl = `wss://${API_ID}.execute-api.${REGION}.amazonaws.com/dev`
 
 let socket: WebSocket | null = null
@@ -14,6 +10,7 @@ export interface ConnectOptions {
   onClose?: () => void
   onError?: () => void
 }
+
 export function connect(opts: ConnectOptions = {}) {
   socket = new WebSocket(wsUrl)
 
@@ -46,6 +43,19 @@ export function sendBuzz(elapsed: number) {
   const message = {
     action: 'buzz',
     elapsed
+  }
+  socket.send(JSON.stringify(message))
+}
+
+export function sendJoinRoom(roomId: string, playerId: string) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    console.warn('WebSocket is not connected')
+    return
+  }
+  const message = {
+    action: 'joinRoom',
+    roomId,
+    playerId
   }
   socket.send(JSON.stringify(message))
 }
