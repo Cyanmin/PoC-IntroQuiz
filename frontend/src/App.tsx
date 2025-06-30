@@ -2,12 +2,14 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
-import { connect, sendBuzz, disconnect } from './websocketClient'
+import { connect, sendBuzz, sendJoinRoom, disconnect } from './hooks/useWebSocket'
 
 function App() {
   const [count, setCount] = useState(0)
   const [connected, setConnected] = useState(false)
   const [messages, setMessages] = useState<string[]>([])
+  const [roomId, setRoomId] = useState('')
+  const [playerId, setPlayerId] = useState('')
 
   const handleConnect = () => {
     connect({
@@ -26,6 +28,14 @@ function App() {
     sendBuzz(Date.now())
   }
 
+  const handleJoinRoom = () => {
+    if (!roomId || !playerId) {
+      alert('roomIdとplayerIdを入力してください')
+      return
+    }
+    sendJoinRoom(roomId, playerId)
+  }
+
   return (
     <>
       <div>
@@ -36,7 +46,7 @@ function App() {
           <img src={reactLogo} className="logo react" alt="React logo" />
         </a>
       </div>
-      <h1>Vite + React</h1>
+      <h1>Vite + React + IntroQuiz</h1>
       <div className="card">
         <p>{connected ? '✅ Connected' : '❌ Disconnected'}</p>
         <button onClick={handleConnect} disabled={connected}>Connect</button>
@@ -44,6 +54,28 @@ function App() {
         <button onClick={handleBuzz} disabled={!connected}>Send Buzz</button>
         <button onClick={() => setCount(c => c + 1)}>count is {count}</button>
       </div>
+
+      <div className="card">
+        <h2>Join Room</h2>
+        <input
+          type="text"
+          placeholder="roomId"
+          value={roomId}
+          onChange={e => setRoomId(e.target.value)}
+          className="input"
+        />
+        <input
+          type="text"
+          placeholder="playerId"
+          value={playerId}
+          onChange={e => setPlayerId(e.target.value)}
+          className="input"
+        />
+        <button onClick={handleJoinRoom} disabled={!connected}>
+          Send JoinRoom
+        </button>
+      </div>
+
       <div className="card">
         <h2>Messages</h2>
         <ul>
@@ -52,6 +84,7 @@ function App() {
           ))}
         </ul>
       </div>
+
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>

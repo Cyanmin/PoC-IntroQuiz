@@ -78,8 +78,15 @@ export class InfraStack extends Stack {
       handler: "startQuizHandler.handler",
     });
 
+    // Lambda: joinRoomHandler
+    const joinRoomHandler = new lambda.Function(this, "JoinRoomHandler", {
+      ...lambdaProps,
+      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
+      handler: "joinRoomHandler.handler",
+    });
+
     // Lambda に DynamoDB のアクセス権限を付与
-    [onConnect, onDisconnect, buzzHandler, startQuizHandler].forEach((fn) => {
+    [onConnect, onDisconnect, buzzHandler, startQuizHandler, joinRoomHandler].forEach((fn) => {
       roomTable.grantReadWriteData(fn);
       playerTable.grantReadWriteData(fn);
     });
@@ -117,6 +124,13 @@ export class InfraStack extends Stack {
       integration: new WebSocketLambdaIntegration(
         "StartQuizIntegration",
         startQuizHandler
+      ),
+    });
+
+    webSocketApi.addRoute("joinRoom", {
+      integration: new WebSocketLambdaIntegration(
+        "JoinRoomIntegration",
+        joinRoomHandler
       ),
     });
 
