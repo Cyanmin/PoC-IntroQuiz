@@ -1,2 +1,5 @@
 def handler(event, context):
-	pass
+    return {
+        "statusCode": 200,
+        "body": "Unrecognized route"
+    }
