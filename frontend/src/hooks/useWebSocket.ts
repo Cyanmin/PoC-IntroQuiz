@@ -1,65 +1,43 @@
-const API_ID = 'uwzlrtt6r9'
-const REGION = 'ap-northeast-1'
-const wsUrl = `wss://${API_ID}.execute-api.${REGION}.amazonaws.com/dev`
+import { useEffect, useRef, useState } from 'react';
 
-let socket: WebSocket | null = null
+export type WSMessage =
+  | { type: 'joinRoomAck'; roomId: string; playerId: string }
+  | { type: 'playlistFetched'; playlistId: string; videos: string[] }
+  | { type: 'quizStarted'; startTimestamp: number }
+  | { type: string; [key: string]: unknown };
 
-export interface ConnectOptions {
-  onOpen?: () => void
-  onMessage?: (data: string) => void
-  onClose?: () => void
-  onError?: () => void
-}
+export type WebSocketState = {
+  connected: boolean;
+  send: (msg: object) => void;
+  messages: WSMessage[];
+};
 
-export function connect(opts: ConnectOptions = {}) {
-  socket = new WebSocket(wsUrl)
+export const useWebSocket = (): WebSocketState => {
+  const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState<WSMessage[]>([]);
+  const socketRef = useRef<WebSocket | null>(null);
 
-  socket.addEventListener('open', () => {
-    console.log('✅ WebSocket connected')
-    opts.onOpen?.()
-  })
+  useEffect(() => {
+    const ws = new WebSocket(import.meta.env.VITE_WEBSOCKET_ENDPOINT);
+    socketRef.current = ws;
 
-  socket.addEventListener('message', event => {
-    console.log('📩 Message received:', event.data)
-    opts.onMessage?.(event.data)
-  })
+    ws.onopen = () => setConnected(true);
+    ws.onclose = () => setConnected(false);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setMessages((prev) => [...prev, data]);
+      } catch (e) {
+        console.error('Failed to parse WS message', e);
+      }
+    };
 
-  socket.addEventListener('close', () => {
-    console.log('❌ WebSocket disconnected')
-    opts.onClose?.()
-  })
+    return () => ws.close();
+  }, []);
 
-  socket.addEventListener('error', () => {
-    console.log('💥 WebSocket error')
-    opts.onError?.()
-  })
-}
+  const send = (msg: object) => {
+    socketRef.current?.send(JSON.stringify(msg));
+  };
 
-export function sendBuzz(elapsed: number) {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    console.warn('WebSocket is not connected')
-    return
-  }
-  const message = {
-    action: 'buzz',
-    elapsed
-  }
-  socket.send(JSON.stringify(message))
-}
-
-export function sendJoinRoom(roomId: string, playerId: string) {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    console.warn('WebSocket is not connected')
-    return
-  }
-  const message = {
-    action: 'joinRoom',
-    roomId,
-    playerId
-  }
-  socket.send(JSON.stringify(message))
-}
-
-export function disconnect() {
-  socket?.close()
-}
+  return { connected, send, messages };
+};
