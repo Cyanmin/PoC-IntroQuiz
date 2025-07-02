@@ -28,6 +28,21 @@ export class InfraStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
+    // DynamoDB: Playlist Cache Table
+    const playlistCacheTable = new dynamodb.Table(this, "PlaylistCacheTable", {
+      partitionKey: { name: "playlistId", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "expiresAt",
+    });
+
+    // GSI for connectionId lookup
+    playerTable.addGlobalSecondaryIndex({
+      indexName: "connectionId-index",
+      partitionKey: { name: "connectionId", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     // CloudWatch LogGroup を作成
     const logGroup = new logs.LogGroup(this, "WebSocketAccessLogs", {
       removalPolicy: RemovalPolicy.DESTROY,
@@ -40,6 +55,7 @@ export class InfraStack extends Stack {
       environment: {
         ROOM_TABLE: roomTable.tableName,
         PLAYER_TABLE: playerTable.tableName,
+        PLAYLIST_CACHE_TABLE: playlistCacheTable.tableName,
       },
     };
 
@@ -85,10 +101,29 @@ export class InfraStack extends Stack {
       handler: "joinRoomHandler.handler",
     });
 
+    // Lambda: fetchPlaylistHandler
+    const fetchPlaylistHandler = new lambda.Function(this, "FetchPlaylistHandler", {
+      ...lambdaProps,
+      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
+      handler: "fetchPlaylistHandler.handler",
+      environment: {
+        ...lambdaProps.environment,
+        YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY ?? "",
+      },
+    });
+
     // Lambda に DynamoDB のアクセス権限を付与
-    [onConnect, onDisconnect, buzzHandler, startQuizHandler, joinRoomHandler].forEach((fn) => {
+    [
+      onConnect,
+      onDisconnect,
+      buzzHandler,
+      startQuizHandler,
+      joinRoomHandler,
+      fetchPlaylistHandler,
+    ].forEach((fn) => {
       roomTable.grantReadWriteData(fn);
       playerTable.grantReadWriteData(fn);
+      playlistCacheTable.grantReadWriteData(fn);
     });
 
     // WebSocket API 作成
@@ -131,6 +166,13 @@ export class InfraStack extends Stack {
       integration: new WebSocketLambdaIntegration(
         "JoinRoomIntegration",
         joinRoomHandler
+      ),
+    });
+
+    webSocketApi.addRoute("fetchPlaylist", {
+      integration: new WebSocketLambdaIntegration(
+        "FetchPlaylistIntegration",
+        fetchPlaylistHandler
       ),
     });
 
