@@ -1,6 +1,7 @@
 import os
 import boto3
 import json
+import requests
 from boto3.dynamodb.conditions import Key
 
 # 簡易な正誤判定（完全一致 or 部分一致）
@@ -15,6 +16,22 @@ dynamodb = boto3.resource('dynamodb')
 room_table = dynamodb.Table(os.environ['ROOM_TABLE'])
 player_table = dynamodb.Table(os.environ['PLAYER_TABLE'])
 apigw = boto3.client('apigatewaymanagementapi', endpoint_url=os.environ['WS_ENDPOINT'])
+YOUTUBE_API_KEY = os.environ['YOUTUBE_API_KEY']
+
+
+def fetch_video_title(video_id: str) -> str:
+    """Fetch a single video's title via YouTube Data API."""
+    params = {
+        'part': 'snippet',
+        'id': video_id,
+        'key': YOUTUBE_API_KEY,
+    }
+    try:
+        resp = requests.get('https://www.googleapis.com/youtube/v3/videos', params=params)
+        data = resp.json()
+        return data.get('items', [{}])[0].get('snippet', {}).get('title', '')
+    except Exception:
+        return ''
 
 def handler(event, context):
     body = event.get('body')
@@ -32,7 +49,12 @@ def handler(event, context):
     video_titles = room.get('videoTitles', [])  # 事前にvideoTitlesを保存しておく想定
     if question_index >= len(video_ids):
         return {'statusCode': 400, 'body': 'Invalid question index'}
-    correct_title = video_titles[question_index] if question_index < len(video_titles) else ''
+
+    if question_index < len(video_titles):
+        correct_title = video_titles[question_index]
+    else:
+        # Fallback when titles were not stored
+        correct_title = fetch_video_title(video_ids[question_index])
 
     # 正誤判定
     correct = is_correct(answer_text, correct_title)

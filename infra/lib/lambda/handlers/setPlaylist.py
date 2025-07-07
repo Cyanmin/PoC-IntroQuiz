@@ -18,27 +18,36 @@ def extract_playlist_id(url):
     return m.group(1) if m else None
 
 
-def fetch_video_ids(playlist_id):
+def fetch_videos(playlist_id):
+    """Retrieve video IDs and titles from a playlist."""
     video_ids = []
+    video_titles = []
     page_token = ''
     while True:
         params = {
-            'part': 'contentDetails',
+            'part': 'snippet',
             'playlistId': playlist_id,
             'maxResults': 50,
             'key': YOUTUBE_API_KEY,
         }
         if page_token:
             params['pageToken'] = page_token
-        resp = requests.get('https://www.googleapis.com/youtube/v3/playlistItems', params=params)
+        resp = requests.get(
+            'https://www.googleapis.com/youtube/v3/playlistItems',
+            params=params,
+        )
         data = resp.json()
         for item in data.get('items', []):
-            vid = item['contentDetails']['videoId']
-            video_ids.append(vid)
+            snippet = item.get('snippet', {})
+            vid = snippet.get('resourceId', {}).get('videoId')
+            title = snippet.get('title', '')
+            if vid:
+                video_ids.append(vid)
+                video_titles.append(title)
         page_token = data.get('nextPageToken')
         if not page_token:
             break
-    return video_ids
+    return video_ids, video_titles
 
 
 def handler(event, context):
@@ -54,7 +63,7 @@ def handler(event, context):
         apigw.post_to_connection(ConnectionId=connection_id, Data=json.dumps(res).encode('utf-8'))
         return {'statusCode': 400, 'body': 'Invalid playlist URL'}
 
-    video_ids = fetch_video_ids(playlist_id)
+    video_ids, video_titles = fetch_videos(playlist_id)
     if not video_ids:
         res = {'type': 'setPlaylistResult', 'status': 'error', 'message': 'No videos found'}
         apigw.post_to_connection(ConnectionId=connection_id, Data=json.dumps(res).encode('utf-8'))
@@ -63,13 +72,19 @@ def handler(event, context):
     # RoomTableに保存
     room_table.update_item(
         Key={'roomId': room_id},
-        UpdateExpression='SET playlistId = :pid, videoIds = :vids',
+        UpdateExpression='SET playlistId = :pid, videoIds = :vids, videoTitles = :titles',
         ExpressionAttributeValues={
             ':pid': playlist_id,
             ':vids': video_ids,
+            ':titles': video_titles,
         }
     )
 
-    res = {'type': 'setPlaylistResult', 'status': 'ok', 'videoIds': video_ids}
+    res = {
+        'type': 'setPlaylistResult',
+        'status': 'ok',
+        'videoIds': video_ids,
+        'videoTitles': video_titles,
+    }
     apigw.post_to_connection(ConnectionId=connection_id, Data=json.dumps(res).encode('utf-8'))
     return {'statusCode': 200, 'body': 'ok'}
