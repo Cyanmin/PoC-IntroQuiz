@@ -3,8 +3,20 @@ export type WSOutgoing =
   | { action: "createRoom"; roomId: string; roomName: string }
   | { action: "setPlaylist"; roomId: string; playlistUrl: string }
   | { action: "startQuiz"; roomId: string }
-  | { action: "buzz" /* もし elapsed を送るなら elapsed: number */ }
-  | { action: "answer"; answer: string }
+  | {
+      action: "buzz";
+      roomId: string;
+      playerId: string;
+      elapsed: number;
+      questionIndex: number;
+    }
+  | {
+      action: "answer";
+      roomId: string;
+      playerId: string;
+      answer: string;
+      questionIndex: number;
+    }
   | { action: "endQuiz"; roomId: string }
   | { action: string; [key: string]: unknown };
 

@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useNavigate } from "react-router-dom";
+import { useRoomStore } from "../../stores/useRoomStore";
+import { usePlayerStore } from "../../stores/usePlayerStore";
 
 const RoomPage: React.FC = () => {
   const { send, messages } = useWebSocket();
   const navigate = useNavigate();
+  const roomId = useRoomStore((state) => state.roomId);
+  const playerId = usePlayerStore((state) => state.playerId);
   const [roomName, setRoomName] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [videoId, setVideoId] = useState("");
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [startTimestamp, setStartTimestamp] = useState<number | null>(null);
   const [isQuizActive, setIsQuizActive] = useState(false);
   const [isBuzzAccepted, setIsBuzzAccepted] = useState(false);
   const [isBuzzing, setIsBuzzing] = useState(false);
@@ -43,6 +49,12 @@ const RoomPage: React.FC = () => {
       case "startQuiz":
         if ("videoId" in last && typeof last.videoId === "string")
           setVideoId(last.videoId);
+        if ("questionIndex" in last && typeof last.questionIndex === "number") {
+          setQuestionIndex(last.questionIndex);
+        } else {
+          setQuestionIndex(0);
+        }
+        setStartTimestamp(Date.now());
         setIsQuizActive(true);
         setIsBuzzAccepted(false);
         setIsBuzzing(false);
@@ -83,15 +95,28 @@ const RoomPage: React.FC = () => {
   // 早押し
   const handleBuzz = useCallback(() => {
     setIsBuzzing(true);
-    send({ action: "buzz" });
-  }, [send]);
+    const elapsed = startTimestamp ? Date.now() - startTimestamp : 0;
+    send({
+      action: "buzz",
+      roomId,
+      playerId,
+      elapsed,
+      questionIndex,
+    });
+  }, [send, startTimestamp, roomId, playerId, questionIndex]);
 
   // 解答送信
   const handleSendAnswer = useCallback(() => {
     if (!answer) return;
-    send({ action: "answer", answer });
+    send({
+      action: "answer",
+      roomId,
+      playerId,
+      answer,
+      questionIndex,
+    });
     setAnswer("");
-  }, [answer, send]);
+  }, [answer, send, roomId, playerId, questionIndex]);
 
   return (
     <div

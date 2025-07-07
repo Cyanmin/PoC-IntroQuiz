@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { useNavigate } from 'react-router-dom';
+import { useRoomStore } from '../../stores/useRoomStore';
+import { usePlayerStore } from '../../stores/usePlayerStore';
 
 const TopPage: React.FC = () => {
   const { send, messages } = useWebSocket();
@@ -10,6 +12,8 @@ const TopPage: React.FC = () => {
   const [playerId] = useState(() => crypto.randomUUID());
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const setRoomIdStore = useRoomStore((state) => state.setRoomId);
+  const setPlayerIdStore = usePlayerStore((state) => state.setPlayerId);
 
   // joinRoomResultやerrorを監視
   const handleJoin = useCallback(() => {
@@ -18,8 +22,10 @@ const TopPage: React.FC = () => {
       setError('Room IDとプレイヤー名を入力してください');
       return;
     }
+    setRoomIdStore(roomId);
+    setPlayerIdStore(playerId);
     send({ action: 'joinRoom', roomId, playerName, playerId });
-  }, [roomId, playerName, playerId, send]);
+  }, [roomId, playerName, playerId, send, setRoomIdStore, setPlayerIdStore]);
 
   // メッセージ監視
   useEffect(() => {
