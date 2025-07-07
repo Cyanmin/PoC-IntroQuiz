@@ -21,7 +21,11 @@ export type WSIncoming =
   | { type: "startQuiz"; videoId: string; questionIndex: number }
   | { type: "buzzAccepted" }
   | { type: "buzzResult" }
-  | { type: "answerResult"; correct: boolean; title: string }
+  | {
+      type: "answerResult";
+      result: "correct" | "incorrect";
+      videoTitle: string;
+    }
   | { type: "quizEnded"; rankings: Ranking[] } // ← ここを追加
   | { type: "roomInfo"; roomName: string; players: string[] }
   | { type: string; [key: string]: unknown };

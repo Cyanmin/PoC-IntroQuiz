@@ -62,9 +62,12 @@ const RoomPage: React.FC = () => {
         break;
       case "answerResult":
         setAnswerResult({
-          correct: "correct" in last ? !!last.correct : false,
+          correct:
+            "result" in last && last.result === "correct" ? true : false,
           title:
-            "title" in last && typeof last.title === "string" ? last.title : "",
+            "videoTitle" in last && typeof last.videoTitle === "string"
+              ? last.videoTitle
+              : "",
         });
         setIsBuzzAccepted(false);
         setInfo("");
