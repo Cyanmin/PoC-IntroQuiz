@@ -27,7 +27,7 @@ const RoomPage: React.FC = () => {
       case 'playerListUpdate':
         if ('players' in last && Array.isArray(last.players)) setPlayers(last.players);
         break;
-      case 'quizStarted':
+      case 'startQuiz':
         if ('videoId' in last && typeof last.videoId === 'string') setVideoId(last.videoId);
         setIsQuizActive(true);
         setIsBuzzAccepted(false);

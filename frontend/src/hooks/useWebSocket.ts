@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 export type WSMessage =
   | { type: 'joinRoomAck'; roomId: string; playerId: string }
   | { type: 'playlistFetched'; playlistId: string; videos: string[] }
-  | { type: 'quizStarted'; startTimestamp: number }
+  | { type: 'startQuiz'; videoId: string; questionIndex: number }
   | { type: string; [key: string]: unknown };
 
 export type WebSocketState = {
