@@ -6,6 +6,8 @@ const TopPage: React.FC = () => {
   const { send, messages } = useWebSocket();
   const [roomId, setRoomId] = useState('');
   const [playerName, setPlayerName] = useState('');
+  // Generate a playerId only once when the component mounts
+  const [playerId] = useState(() => crypto.randomUUID());
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -16,8 +18,8 @@ const TopPage: React.FC = () => {
       setError('Room IDとプレイヤー名を入力してください');
       return;
     }
-    send({ action: 'joinRoom', roomId, playerName });
-  }, [roomId, playerName, send]);
+    send({ action: 'joinRoom', roomId, playerName, playerId });
+  }, [roomId, playerName, playerId, send]);
 
   // メッセージ監視
   useEffect(() => {

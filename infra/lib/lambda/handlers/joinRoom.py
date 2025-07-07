@@ -1,6 +1,7 @@
 import os
 import boto3
 import json
+import uuid
 from boto3.dynamodb.conditions import Key
 
 dynamodb = boto3.resource('dynamodb')
@@ -11,7 +12,7 @@ def handler(event, context):
     body = event.get('body')
     data = json.loads(body) if isinstance(body, str) else body
     room_id = data.get('roomId')
-    player_id = data.get('playerId')
+    player_id = data.get('playerId') or str(uuid.uuid4())
     player_name = data.get('playerName')
     connection_id = event['requestContext']['connectionId']
 
