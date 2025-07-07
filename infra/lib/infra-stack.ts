@@ -68,6 +68,8 @@ export class InfraStack extends Stack {
         PLAYER_TABLE: playerTable.tableName,
         PLAYLIST_CACHE_TABLE: playlistCacheTable.tableName,
         YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY ?? "",
+        // WebSocket API endpoint will be injected after the API is created
+        WS_ENDPOINT: "",
       },
     };
 
@@ -143,6 +145,11 @@ export class InfraStack extends Stack {
           })
         ),
       },
+    });
+
+    // Inject the WebSocket endpoint into each Lambda environment
+    [onConnect, onDisconnect, onDefault].forEach((fn) => {
+      fn.addEnvironment("WS_ENDPOINT", webSocketApi.apiEndpoint);
     });
   }
 }

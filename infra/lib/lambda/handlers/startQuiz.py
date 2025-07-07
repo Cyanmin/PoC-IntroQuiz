@@ -40,8 +40,13 @@ def handler(event, context):
     resp = player_table.query(KeyConditionExpression=Key('roomId').eq(room_id))
     players = resp.get('Items', [])
 
-    # 各プレイヤーにstartQuiz送信
+    # 各プレイヤーのelapsedをリセットしstartQuiz送信
     for p in players:
+        player_table.update_item(
+            Key={'roomId': room_id, 'playerId': p['playerId']},
+            UpdateExpression='SET elapsed = :e',
+            ExpressionAttributeValues={':e': None}
+        )
         if 'connectionId' in p:
             try:
                 apigw.post_to_connection(
@@ -55,11 +60,14 @@ def handler(event, context):
             except Exception:
                 pass
 
-    # RoomTableにcurrentIndex保存
+    # RoomTableにcurrentIndex保存（次の問題を指すよう+1）
+    next_index = current_index + 1
+    if next_index >= len(video_ids):
+        next_index = 0
     room_table.update_item(
         Key={'roomId': room_id},
         UpdateExpression='SET currentIndex = :idx',
-        ExpressionAttributeValues={':idx': current_index}
+        ExpressionAttributeValues={':idx': next_index}
     )
 
     return {'statusCode': 200, 'body': 'ok'}
