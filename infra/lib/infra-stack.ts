@@ -4,7 +4,11 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as path from "path";
+import * as dotenv from "dotenv";
+import { Fn } from "aws-cdk-lib";
+
 import { WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import {
   LogGroupLogDestination,
@@ -12,6 +16,10 @@ import {
   WebSocketStage,
 } from "aws-cdk-lib/aws-apigatewayv2";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
+import { AssetCode, DockerImageCode } from "aws-cdk-lib/aws-lambda";
+import { DockerImageAsset } from "aws-cdk-lib/aws-ecr-assets";
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 export class InfraStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -68,8 +76,6 @@ export class InfraStack extends Stack {
         PLAYER_TABLE: playerTable.tableName,
         PLAYLIST_CACHE_TABLE: playlistCacheTable.tableName,
         YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY ?? "",
-        // WebSocket API endpoint will be injected after the API is created
-        WS_ENDPOINT: "",
       },
     };
 
@@ -95,13 +101,6 @@ export class InfraStack extends Stack {
       handler: "onDefault.handler",
     });
 
-    // Lambda に DynamoDB のアクセス権限を付与
-    [onConnect, onDisconnect, onDefault].forEach((fn) => {
-      roomTable.grantReadWriteData(fn);
-      playerTable.grantReadWriteData(fn);
-      playlistCacheTable.grantReadWriteData(fn);
-    });
-
     // WebSocket API 作成
     const webSocketApi = new WebSocketApi(this, "IntroQuizWebSocketApi", {
       connectRouteOptions: {
@@ -123,6 +122,44 @@ export class InfraStack extends Stack {
         ),
       },
     });
+
+    const connectionArn = `arn:aws:execute-api:${this.region}:${this.account}:${webSocketApi.apiId}/*/*/@connections/*`;
+
+    // Lambda に DynamoDB のアクセス権限を付与
+    [onConnect, onDisconnect, onDefault].forEach((fn) => {
+      roomTable.grantReadWriteData(fn);
+      playerTable.grantReadWriteData(fn);
+      playlistCacheTable.grantReadWriteData(fn);
+
+      // post_to_connection のための明示的な IAM ポリシーを付与
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ["execute-api:ManageConnections"],
+          resources: [connectionArn],
+        })
+      );
+    });
+
+    const requestsLayer = new lambda.LayerVersion(this, "RequestsLayer", {
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../layers/requests-layer"),
+        {
+          bundling: {
+            image: lambda.Runtime.PYTHON_3_13.bundlingImage,
+            command: [
+              "bash",
+              "-c",
+              [
+                "pip install -r python/requirements.txt -t /asset-output/python",
+              ].join(" && "),
+            ],
+          },
+        }
+      ),
+      compatibleRuntimes: [lambda.Runtime.PYTHON_3_13],
+    });
+
+    onDefault.addLayers(requestsLayer);
 
     // Stage (デフォルト: dev)
     new WebSocketStage(this, "DevStage", {
@@ -147,9 +184,17 @@ export class InfraStack extends Stack {
       },
     });
 
-    // Inject the WebSocket endpoint into each Lambda environment
+    const stageName = "dev";
+    const httpsEndpoint = Fn.join("", [
+      "https://",
+      webSocketApi.apiId, // API ID
+      ".execute-api.",
+      this.region, // AWS::Region
+      ".amazonaws.com/",
+      stageName,
+    ]);
     [onConnect, onDisconnect, onDefault].forEach((fn) => {
-      fn.addEnvironment("WS_ENDPOINT", webSocketApi.apiEndpoint);
+      fn.addEnvironment("WS_ENDPOINT", httpsEndpoint);
     });
   }
 }

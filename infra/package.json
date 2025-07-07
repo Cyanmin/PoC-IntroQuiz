@@ -23,6 +23,7 @@
     "@aws-cdk/aws-apigatewayv2-integrations": "^1.203.0",
     "@aws-cdk/aws-dynamodb": "^1.203.0",
     "aws-cdk-lib": "^2.202.0",
-    "constructs": "^10.4.2"
+    "constructs": "^10.4.2",
+    "dotenv": "^17.0.1"
   }
 }

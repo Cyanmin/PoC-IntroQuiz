@@ -65,7 +65,6 @@ const SetupPage: React.FC = () => {
         setError(typeof last.message === 'string' ? last.message : 'エラーが発生しました');
       } else if (last.type === 'endQuizResult' && last.status === 'ok') {
         // 集計完了時の遷移はここで実装（例: /result へ）
-        window.location.href = '/result';
       }
     }
   }, [messages]);

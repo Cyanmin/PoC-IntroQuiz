@@ -1,17 +1,27 @@
 export type WSOutgoing =
-  | { action: 'joinRoom'; roomId: string; playerId: string }
-  | { action: 'fetchPlaylist'; playlistId: string }
-  | { action: 'startQuiz'; roomId: string }
-  | { action: 'buzz'; elapsed: number };
+  | { action: "joinRoom"; roomId: string; playerName: string; playerId: string }
+  | { action: "createRoom"; roomId: string; roomName: string }
+  | { action: "setPlaylist"; roomId: string; playlistUrl: string }
+  | { action: "startQuiz"; roomId: string }
+  | { action: "buzz" /* もし elapsed を送るなら elapsed: number */ }
+  | { action: "answer"; answer: string }
+  | { action: "endQuiz"; roomId: string }
+  | { action: string; [key: string]: unknown };
+
+export type Ranking = { playerName: string; score: number };
 
 export type WSIncoming =
-  | { type: 'joinRoomAck'; roomId: string; playerId: string }
-  | { type: 'playlistFetched'; playlistId: string; videos: string[] }
-  | { type: 'startQuiz'; videoId: string; questionIndex: number }
-  | { type: 'playerListUpdate'; players: string[] }
-  | { type: 'buzzAccepted' }
-  | { type: 'buzzResult' }
-  | { type: 'answerResult'; correct: boolean; title: string }
-  | { type: 'quizEnded' }
-  | { type: 'roomInfo'; roomName: string; players: string[] }
+  | {
+      type: "joinRoomResult";
+      status: "ok" | "error";
+      playerList?: string[];
+      message?: string;
+    }
+  | { type: "playerListUpdate"; players: string[] }
+  | { type: "startQuiz"; videoId: string; questionIndex: number }
+  | { type: "buzzAccepted" }
+  | { type: "buzzResult" }
+  | { type: "answerResult"; correct: boolean; title: string }
+  | { type: "quizEnded"; rankings: Ranking[] } // ← ここを追加
+  | { type: "roomInfo"; roomName: string; players: string[] }
   | { type: string; [key: string]: unknown };
