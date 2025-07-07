@@ -6,7 +6,11 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as path from "path";
 import { WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
-import { LogGroupLogDestination, WebSocketApi, WebSocketStage } from "aws-cdk-lib/aws-apigatewayv2";
+import {
+  LogGroupLogDestination,
+  WebSocketApi,
+  WebSocketStage,
+} from "aws-cdk-lib/aws-apigatewayv2";
 import { AccessLogFormat } from "aws-cdk-lib/aws-apigateway";
 
 export class InfraStack extends Stack {
@@ -18,6 +22,8 @@ export class InfraStack extends Stack {
       partitionKey: { name: "roomId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
+      // 属性定義はDynamoDBではPartition/Sort Key以外は明示不要だが、コメントで補足
+      // その他属性: roomName (String), playlistId (String), videoIds (List), currentIndex (Number), state (String), createdAt (Number)
     });
 
     // DynamoDB: Player Table
@@ -26,6 +32,8 @@ export class InfraStack extends Stack {
       sortKey: { name: "playerId", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: RemovalPolicy.DESTROY,
+      // 属性定義はDynamoDBではPartition/Sort Key以外は明示不要だが、コメントで補足
+      // その他属性: playerName (String), connectionId (String), elapsed (Number), score (Number), joinedAt (Number)
     });
 
     // DynamoDB: Playlist Cache Table
@@ -39,7 +47,10 @@ export class InfraStack extends Stack {
     // GSI for connectionId lookup
     playerTable.addGlobalSecondaryIndex({
       indexName: "connectionId-index",
-      partitionKey: { name: "connectionId", type: dynamodb.AttributeType.STRING },
+      partitionKey: {
+        name: "connectionId",
+        type: dynamodb.AttributeType.STRING,
+      },
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
@@ -56,71 +67,34 @@ export class InfraStack extends Stack {
         ROOM_TABLE: roomTable.tableName,
         PLAYER_TABLE: playerTable.tableName,
         PLAYLIST_CACHE_TABLE: playlistCacheTable.tableName,
+        YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY ?? "",
       },
     };
 
     // Lambda: onConnect
     const onConnect = new lambda.Function(this, "OnConnectHandler", {
       ...lambdaProps,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
+      code: lambda.Code.fromAsset("lib/lambda"),
       handler: "onConnect.handler",
     });
 
     // Lambda: onDisconnect
     const onDisconnect = new lambda.Function(this, "OnDisconnectHandler", {
       ...lambdaProps,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
+      code: lambda.Code.fromAsset("lib/lambda"),
       handler: "onDisconnect.handler",
     });
 
-    // Lambda: onDisconnect
+    // NOTE: すべてのメッセージは $default ルートで受信し、onDefault.handler 内で action によるルーティングを行う
+    // Lambda: onDefault
     const onDefault = new lambda.Function(this, "OnDefaultHandler", {
       ...lambdaProps,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
+      code: lambda.Code.fromAsset("lib/lambda"),
       handler: "onDefault.handler",
     });
 
-    // Lambda: buzzHandler
-    const buzzHandler = new lambda.Function(this, "BuzzHandler", {
-      ...lambdaProps,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
-      handler: "buzzHandler.handler",
-    });
-
-    // Lambda: startQuizHandler
-    const startQuizHandler = new lambda.Function(this, "StartQuizHandler", {
-      ...lambdaProps,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
-      handler: "startQuizHandler.handler",
-    });
-
-    // Lambda: joinRoomHandler
-    const joinRoomHandler = new lambda.Function(this, "JoinRoomHandler", {
-      ...lambdaProps,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
-      handler: "joinRoomHandler.handler",
-    });
-
-    // Lambda: fetchPlaylistHandler
-    const fetchPlaylistHandler = new lambda.Function(this, "FetchPlaylistHandler", {
-      ...lambdaProps,
-      code: lambda.Code.fromAsset(path.join(__dirname, "lambda")),
-      handler: "fetchPlaylistHandler.handler",
-      environment: {
-        ...lambdaProps.environment,
-        YOUTUBE_API_KEY: process.env.YOUTUBE_API_KEY ?? "",
-      },
-    });
-
     // Lambda に DynamoDB のアクセス権限を付与
-    [
-      onConnect,
-      onDisconnect,
-      buzzHandler,
-      startQuizHandler,
-      joinRoomHandler,
-      fetchPlaylistHandler,
-    ].forEach((fn) => {
+    [onConnect, onDisconnect, onDefault].forEach((fn) => {
       roomTable.grantReadWriteData(fn);
       playerTable.grantReadWriteData(fn);
       playlistCacheTable.grantReadWriteData(fn);
@@ -146,34 +120,6 @@ export class InfraStack extends Stack {
           onDefault
         ),
       },
-    });
-
-    webSocketApi.addRoute("buzz", {
-      integration: new WebSocketLambdaIntegration(
-        "BuzzIntegration",
-        buzzHandler
-      ),
-    });
-
-    webSocketApi.addRoute("startQuiz", {
-      integration: new WebSocketLambdaIntegration(
-        "StartQuizIntegration",
-        startQuizHandler
-      ),
-    });
-
-    webSocketApi.addRoute("joinRoom", {
-      integration: new WebSocketLambdaIntegration(
-        "JoinRoomIntegration",
-        joinRoomHandler
-      ),
-    });
-
-    webSocketApi.addRoute("fetchPlaylist", {
-      integration: new WebSocketLambdaIntegration(
-        "FetchPlaylistIntegration",
-        fetchPlaylistHandler
-      ),
     });
 
     // Stage (デフォルト: dev)

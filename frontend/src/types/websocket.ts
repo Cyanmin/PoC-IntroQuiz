@@ -7,5 +7,11 @@ export type WSOutgoing =
 export type WSIncoming =
   | { type: 'joinRoomAck'; roomId: string; playerId: string }
   | { type: 'playlistFetched'; playlistId: string; videos: string[] }
-  | { type: 'quizStarted'; startTimestamp: number }
+  | { type: 'quizStarted'; startTimestamp: number; videoId: string }
+  | { type: 'playerListUpdate'; players: string[] }
+  | { type: 'buzzAccepted' }
+  | { type: 'buzzResult' }
+  | { type: 'answerResult'; correct: boolean; title: string }
+  | { type: 'quizEnded' }
+  | { type: 'roomInfo'; roomName: string; players: string[] }
   | { type: string; [key: string]: unknown };

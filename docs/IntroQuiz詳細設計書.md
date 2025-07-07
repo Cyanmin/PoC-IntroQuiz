@@ -214,3 +214,56 @@
 /scripts/                                # 開発補助・ビルド・デプロイスクリプト等
 
 /README.md                               # プロジェクト説明と導入手順
+
+## memo
+
+- TOP画面
+  - frontend
+    - RoomId と PlayerName を入力
+    - Websocket で Lambda に送信
+  - backend
+    - RoomId と PlayerName を受信
+    - PlayerName で プレイヤーを登録
+      - PlayerId, UserName, connectionId
+    - RoomId から Room に参加
+      - RoomId, PlyerList
+    - Websocket で status:Ok と PlayerList を送信
+  - frontend
+    - status:Ok と PlayerList を受信
+    - Room 画面に遷移
+- Room画面
+  - frontend
+    - Room 名と、参加プレイヤー名を表示
+    - Setup からゲーム開始を受け取ると、画面に回答ボタンを表示する
+    - 回答ボタン
+- Setup画面: 一人しかアクセスしない想定
+  - frontend
+    - RoomId と RoomName を入力
+    - Websocket で lambda に送信
+  - backend
+    - RoomId と RoomName を受信
+    - RoomId から Room を作成
+      - RoomId, RoomName
+    - Websocket で Status:Ok と RoomId と RoomName を送信
+  - frontend
+    - RoomId と RoomName を受信
+    - 画面に RoomId と RoomName を表示
+
+  - backend
+    - 非同期で取得
+    - RoomId から Room から PlayerList から Player を取得
+    - Websocket で status:Ok と Player を送信
+  - frontend
+    - Player を受信
+    - 画面にプレイヤーを表示
+    - 画面に、再生リスト入力欄、ゲームスタートボタンを表示
+    - PlayListUrl を入力
+    - Websocket で lambda に送信
+  - backend
+    - PlayListUrl を受信
+    - PlayListUrl をパースして PlayListId を取得
+    - PlayListId を Room に登録
+    - PlayListId を YoutubeAPI を利用して、含まれる VideoId を取得
+
+  - fronend
+    - ゲームスタートボタンをクリック
